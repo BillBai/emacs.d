@@ -41,24 +41,25 @@
 
 ;; Jinx: Enchanted spell-checking
 ;;
-;; [bill] Two reasons the upstream auto-hook is disabled here:
+;; [bill] `text-mode' only, deliberately not `prog-mode': code comments here are
+;; frequently Chinese, and flagging them is pure noise. Turn it on by hand in a
+;; code buffer with `M-x jinx-mode' on the rare occasion it is wanted.
 ;;
-;;   1. Jinx needs an Enchant backend dictionary. There is none installed:
-;;        sudo pacman -S hunspell-en_us
-;;      Without it `jinx-mode' errors every time a text buffer opens.
-;;
-;;   2. Half of what I write is Chinese, and there is no Chinese dictionary
-;;      (nor does spell-checking make sense for it). With the hook on, every
-;;      CJK word gets underlined as a misspelling.
-;;
-;; So: no hook. Turn it on per buffer with `M-x jinx-mode' when writing English,
-;; and use C-; to correct the word at point.
+;; Requires an Enchant backend dictionary: sudo pacman -S hunspell-en_us
 (use-package jinx
   :ensure t
+  :hook (text-mode . jinx-mode)
   :bind (("C-;" . jinx-correct))
   :custom
   (jinx-camel-modes '(prog-mode))
-  (jinx-delay 0.01))
+  (jinx-delay 0.01)
+  :config
+  ;; [bill] Never spell-check Chinese. Jinx has no notion of scripts, so in a
+  ;; bilingual note every Chinese run would be sent to the en_US dictionary and
+  ;; come back "misspelled". `\cc' is Emacs' regexp character-category for
+  ;; Chinese. Pushed onto the existing `t' entry so jinx's own defaults (URLs,
+  ;; e-mail addresses, ALL-CAPS words, ...) are preserved.
+  (push "\\cc+" (alist-get t jinx-exclude-regexps)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

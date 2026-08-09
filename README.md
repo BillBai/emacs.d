@@ -24,7 +24,8 @@ Emacs 30.2 (pgtk build) on Arch Linux, KDE/Wayland.
 │   ├── base.el            vertico, consult, corfu, embark, cape, avy, eat, wgrep
 │   ├── dev.el             magit, eglot, tempel, markdown/yaml/json modes
 │   ├── vim-like.el        evil, evil-collection, evil-commentary
-│   └── org.el, email.el, researcher.el, writer.el   ← present but NOT loaded
+│   ├── writer.el          olivetti (centred prose), jinx (spell-check, text-mode only)
+│   └── org.el, email.el, researcher.el              ← present but NOT loaded
 ├── lisp/
 │   └── programming.el     mine: tree-sitter grammars, major modes, eglot, Racket
 ├── templates              tempel snippet definitions
@@ -41,6 +42,7 @@ early-init.el
     → extras/base.el
     → extras/dev.el
     → extras/vim-like.el
+    → extras/writer.el
     → lisp/programming.el
   → custom.el              ← loaded last, so Customize settings win
 ```
