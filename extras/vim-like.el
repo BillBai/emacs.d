@@ -22,7 +22,7 @@
   (setq evil-respect-visual-line-mode t)
   (setq evil-undo-system 'undo-redo)
   (setq evil-want-keybinding nil)
-  
+
   ;; Enable this if you want C-u to scroll up, more like pure Vim
   (setq evil-want-C-u-scroll t)
 
@@ -38,8 +38,14 @@
 
 (use-package evil-collection
   :ensure t
-  
+
   :after evil
 
   :config
   (evil-collection-init '(dired magit help compile xref)))
+
+(use-package evil-commentary
+  :ensure t
+  :after evil
+  :config
+  (evil-commentary-mode))

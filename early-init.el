@@ -32,15 +32,22 @@
 (when (boundp 'tool-bar-mode) ; When in a GUI, disable tool bar;
   (tool-bar-mode -1))        ; all these tools are in the menu-bar anyway
 
+;; (setq default-frame-alist '((fullscreen . maximized)
+
+;;                             ;; You can turn off scroll bars by uncommenting these lines:
+;;                             ;; (vertical-scroll-bars . nil)
+;;                             ;; (horizontal-scroll-bars . nil)
+
+;;                             ;; Setting the face in here prevents flashes of
+;;                             ;; color as the theme gets activated
+;;                             (background-color . "#000000")
+;;                             (foreground-color . "#ffffff")
+;;                             (ns-appearance . dark)
+;;                             (ns-transparent-titlebar . t)))
+
 (setq default-frame-alist '((fullscreen . maximized)
-
-                            ;; You can turn off scroll bars by uncommenting these lines:
-                            ;; (vertical-scroll-bars . nil)
-                            ;; (horizontal-scroll-bars . nil)
-
-                            ;; Setting the face in here prevents flashes of
-                            ;; color as the theme gets activated
-                            (background-color . "#000000")
-                            (foreground-color . "#ffffff")
-                            (ns-appearance . dark)
+                            (internal-border-width . 12)
+                            (background-color . "#fbf1c7")
+                            (foreground-color . "#3c3836")
+                            (ns-appearance . light)
                             (ns-transparent-titlebar . t)))

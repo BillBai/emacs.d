@@ -212,9 +212,49 @@ If the new path's directories does not exist, create them."
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(use-package emacs
+;; (use-package emacs
+  ;; :config
+  ;; (load-theme 'modus-vivendi))          ; for light theme, use modus-operandi
+
+;; (use-package gruvbox-theme
+;;   :ensure t
+;;   :config
+;;   (mapc #'disable-theme custom-enabled-themes)
+;;   (load-theme 'gruvbox-light-medium t))
+
+(use-package solarized-theme
+  :ensure t
   :config
-  (load-theme 'modus-vivendi))          ; for light theme, use modus-operandi
+  (mapc #'disable-theme custom-enabled-themes)
+  (load-theme 'solarized-gruvbox-light t))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;   Fonts
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun bill/first-available-font (&rest families)
+  "Returns first font from a FAMILIES, nil if none"
+  (seq-find (lambda (f) (member f (font-family-list))) families))
+
+(defun bill/setup-fonts ()
+  (let ((latin (bill/first-available-font
+		"Ioskeley Mono Term SmCn" "Ioskeley Mono Term" "Iosevka" "Menlo" "Monospace"))
+	(cjk (bill/first-available-font
+	      "LXGW WenKai Mono Medium" "LXGW WenKai Mono" "Sarasa Mono SC")))
+    (when latin
+      (set-face-attribute 'default nil :family latin :weight 'medium :height 130))
+    (when cjk
+      (dolist (charset '(han cjk-misc))
+	(set-fontset-font t charset cjk nil 'prepend)))))
+
+(when (display-graphic-p)
+  (bill/setup-fonts))
+
+(setq-default line-spacing 0.1)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
