@@ -45,7 +45,10 @@
 ;; MELPA packages quickly:
 ;;
 (with-eval-after-load 'package
-  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
+  (setopt package-archives
+	  '(("gnu" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
+	    ("nongnu" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/nongnu/")
+	    ("melpa"  . "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/"))))
 
 ;; If you want to turn off the welcome screen, uncomment this
 ;(setopt inhibit-splash-screen t)
@@ -107,7 +110,6 @@ If the new path's directories does not exist, create them."
 ;; which-key: shows a popup of available keybindings when typing a long key
 ;; sequence (e.g. C-x ...)
 (use-package which-key
-  :ensure t
   :config
   (which-key-mode))
 
@@ -225,10 +227,10 @@ If the new path's directories does not exist, create them."
 
 ;; UI/UX enhancements mostly focused on minibuffer and autocompletion interfaces
 ;; These ones are *strongly* recommended!
-;(load-file (expand-file-name "extras/base.el" user-emacs-directory))
+(load-file (expand-file-name "extras/base.el" user-emacs-directory))
 
 ;; Packages for software development
-;(load-file (expand-file-name "extras/dev.el" user-emacs-directory))
+(load-file (expand-file-name "extras/dev.el" user-emacs-directory))
 
 ;; Vim-bindings in Emacs (evil-mode configuration)
 ;(load-file (expand-file-name "extras/vim-like.el" user-emacs-directory))
