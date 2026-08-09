@@ -1,0 +1,57 @@
+# Build artifacts: platform/arch-specific, never share across machines
+
+/elpa/
+/eln-cache/
+/tree-sitter/
+*.elc
+*.eln
+
+# Runtime state
+/auto-save-list/
+/emacs-backup/
+/url/
+/transient/
+/eshell/
+/games/
+/semanticdb/
+/request/
+/rime/
+recentf
+history
+bookmarks
+projects
+places
+tramp
+network-security.data
+abbrev_defs
+ido.last
+.org-id-locations
+srecode-map.el
+ede-projects.el
+
+
+# Emacs scratch files
+*~
+\#*\#
+.#*
+.emacs.desktop
+.emacs.desktop.lock
+
+# Vim
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.AppleDouble
+.LSOverride
+Icon?
+
+# Linux/KDE
+.directory
+.Trash-*
+.nfs*
