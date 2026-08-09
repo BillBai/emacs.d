@@ -70,7 +70,18 @@
 
 (use-package markdown-mode
   :ensure t
-  :hook ((markdown-mode . visual-line-mode)))
+  :mode ("\\.md\\'" . gfm-mode)
+  :hook ((markdown-mode . visual-line-mode)
+	 (markdown-mode . visual-wrap-prefix-mode))
+  :custom
+  (markdown-command "pandoc")
+  (markdown-fontify-code-blocks-natively t)
+  (markdown-fontify-whole-heading-line t)
+  (markdown-header-scaling t)
+  (markdown-enable-math t)
+  (markdown-enable-wiki-links t)
+  (markdown-wiki-link-search-type '(project sub-directories)))
+
 
 (use-package yaml-mode
   :ensure t)

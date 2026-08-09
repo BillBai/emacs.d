@@ -40,9 +40,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Jinx: Enchanted spell-checking
+;;
+;; [bill] Two reasons the upstream auto-hook is disabled here:
+;;
+;;   1. Jinx needs an Enchant backend dictionary. There is none installed:
+;;        sudo pacman -S hunspell-en_us
+;;      Without it `jinx-mode' errors every time a text buffer opens.
+;;
+;;   2. Half of what I write is Chinese, and there is no Chinese dictionary
+;;      (nor does spell-checking make sense for it). With the hook on, every
+;;      CJK word gets underlined as a misspelling.
+;;
+;; So: no hook. Turn it on per buffer with `M-x jinx-mode' when writing English,
+;; and use C-; to correct the word at point.
 (use-package jinx
   :ensure t
-  :hook (((text-mode prog-mode) . jinx-mode))
   :bind (("C-;" . jinx-correct))
   :custom
   (jinx-camel-modes '(prog-mode))
@@ -66,6 +78,7 @@
 ;; Olivetti: Set the window margins so your text is centered
 (use-package olivetti
   :ensure t
-  ;; Uncomment below to make olivetti-mode turn on automatically in certain modes
-  ; :hook ((markdown-mode . olivetti-mode))
-  )
+  ;; [bill] On for prose. Toggle by hand elsewhere with `M-x olivetti-mode'.
+  :hook ((markdown-mode . olivetti-mode))
+  :custom
+  (olivetti-body-width 90))

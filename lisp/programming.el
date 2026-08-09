@@ -43,7 +43,7 @@
                  (conf-toml-mode  . toml-ts-mode)))
   (add-to-list 'major-mode-remap-alist entry))
 
-;;;; ─── 3. LSP（eglot）─────────────────────────────────────────
+;;;;  LSP (eglot)
 
 (dolist (hook '(c-ts-mode-hook
                 c++-ts-mode-hook
@@ -61,5 +61,22 @@
                     "--clang-tidy"
                     "--header-insertion=never"
                     "--completion-style=detailed"))))
+
+;;;  Racket / SICP
+(use-package racket-mode
+  :ensure t
+  :hook (racket-mode . racket-xp-mode))
+
+(use-package rainbow-delimiters
+  :ensure t
+  :hook ((emacs-lisp-mode lisp-data-mode racket-mode racket-repl-mode)
+         . rainbow-delimiters-mode))
+
+(with-eval-after-load 'evil
+  (evil-set-initial-state 'racket-repl-mode 'insert))
+
+(setopt show-paren-context-when-offscreen 'overlay)
+
+;;; ---------------------
 
 (provide 'programming)

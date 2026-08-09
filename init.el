@@ -172,6 +172,22 @@ If the new path's directories does not exist, create them."
 (blink-cursor-mode -1)                                ; Steady cursor
 (pixel-scroll-precision-mode)                         ; Smooth scrolling
 
+;; [bill] Open URLs and previews in a real browser.
+;;
+;; The default (`browse-url-default-browser') shells out to xdg-open, which
+;; dispatches on the *sniffed* MIME type. Pandoc emits XHTML, and on this box
+;; `application/xhtml+xml' is registered to calibre-ebook-edit.desktop -- so
+;; `C-c C-c p' in Markdown opened Calibre instead of a browser. Naming the
+;; program explicitly sidesteps the whole xdg lookup.
+;;
+;; If none of these exist (e.g. macOS), fall through to the default, which
+;; uses `open' and behaves correctly there.
+(when-let* ((browser (seq-find #'executable-find
+                               '("google-chrome-stable" "google-chrome"
+                                 "chromium" "firefox"))))
+  (setopt browse-url-browser-function #'browse-url-generic
+          browse-url-generic-program browser))
+
 ;; Use common keystrokes by default
 ;; (cua-mode)
 
@@ -287,6 +303,9 @@ If the new path's directories does not exist, create them."
 
 ;; Tools for academic researchers
 ;(load-file (expand-file-name "extras/researcher.el" user-emacs-directory))
+
+;; Writing aids: jinx (spell-check, opt-in per buffer) and olivetti (centered prose)
+(load-file (expand-file-name "extras/writer.el" user-emacs-directory))
 
 (load-file (expand-file-name "lisp/programming.el" user-emacs-directory))
 
