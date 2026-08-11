@@ -55,4 +55,4 @@ Icon?
 # Linux/KDE
 .directory
 .Trash-*
-.nfs*
+.nfs*/.cache/
