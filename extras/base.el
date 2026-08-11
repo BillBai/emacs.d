@@ -123,7 +123,12 @@
   (:map corfu-map
         ("SPC" . corfu-insert-separator)
         ("C-n" . corfu-next)
-        ("C-p" . corfu-previous)))
+        ("C-p" . corfu-previous))
+  :config
+  (corfu-history-mode 1)
+  ;; [bill] corfu-history-mode only sorts by past usage; without this the
+  ;; history is thrown away on exit. savehist is already on (init.el).
+  (add-to-list 'savehist-additional-variables 'corfu-history))
 
 ;; Part of corfu
 (use-package corfu-popupinfo
@@ -180,7 +185,12 @@
 (use-package orderless
   :ensure t
   :config
-  (setq completion-styles '(orderless)))
+  ;; [bill] `basic' as a fallback after orderless. Orderless alone has no
+  ;; prefix matching, which some LSP servers rely on for filtering, and it
+  ;; loses the `/u/s/l' -> `/usr/share/lib' expansion when finding files --
+  ;; hence the per-category override for file names.
+  (setq completion-styles '(orderless basic)
+        completion-category-overrides '((file (styles basic partial-completion)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

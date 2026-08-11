@@ -67,6 +67,9 @@
 ;; Save history of minibuffer
 (savehist-mode)
 
+(recentf-mode 1)
+(save-place-mode 1)
+
 ;; Move through windows with Ctrl-<arrow keys>
 (windmove-default-keybindings 'control) ; You can use other modifiers here
 
@@ -308,6 +311,10 @@ If the new path's directories does not exist, create them."
 (load-file (expand-file-name "extras/writer.el" user-emacs-directory))
 
 (load-file (expand-file-name "lisp/programming.el" user-emacs-directory))
+
+;; Personal keybindings. Must come after extras/vim-like.el -- it references
+;; `evil-window-map' at definition time.
+(load-file (expand-file-name "lisp/keys.el" user-emacs-directory))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
