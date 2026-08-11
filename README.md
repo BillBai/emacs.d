@@ -27,7 +27,8 @@ Emacs 30.2 (pgtk build) on Arch Linux, KDE/Wayland.
 │   ├── writer.el          olivetti (centred prose), jinx (spell-check, text-mode only)
 │   └── org.el, email.el, researcher.el              ← present but NOT loaded
 ├── lisp/
-│   └── programming.el     mine: tree-sitter grammars, major modes, eglot, Racket
+│   ├── programming.el     mine: tree-sitter grammars, major modes, eglot, Racket
+│   └── keys.el            mine: the SPC leader map
 ├── templates              tempel snippet definitions
 ├── custom.el              written by Emacs (gitignored — machine-local)
 ├── elpa/  eln-cache/  tree-sitter/                  ← build output, gitignored
@@ -44,6 +45,7 @@ early-init.el
     → extras/vim-like.el
     → extras/writer.el
     → lisp/programming.el
+    → lisp/keys.el         ← last; needs evil-window-map to exist
   → custom.el              ← loaded last, so Customize settings win
 ```
 
@@ -64,6 +66,48 @@ Anything loaded later overrides anything loaded earlier. `base.el`, for example,
 | `C-h f` *function* | Function documentation |
 | `C-h m` | Every keybinding active in the current buffer |
 | *(pause after a prefix)* | which-key pops up all continuations |
+
+### Leader key — `SPC`
+
+Laid out to match Doom, so the muscle memory carries over. Defined in `lisp/keys.el`.
+Pause after `SPC` and which-key lists everything — none of this needs memorizing.
+
+| Key | What it does |
+|---|---|
+| `SPC SPC` | Find file in project |
+| `SPC .` | Find file |
+| `SPC ,` | Switch buffer |
+| `SPC :` | `M-x` |
+| `SPC /` | ripgrep the project |
+
+| `SPC b` — buffer | | `SPC f` — file | |
+|---|---|---|---|
+| `b` | Switch buffer | `f` | Find file |
+| `k` | Kill this buffer | `s` | **Save** |
+| `s` | Save | `S` | Save as |
+| `r` | Revert from disk | `r` | Recent files |
+| `i` | ibuffer | `d` | dired |
+| | | `p` | Find a file in the config dir |
+
+| `SPC s` — search | | `SPC g` — git | |
+|---|---|---|---|
+| `s` | Search this buffer | `g` | Magit status |
+| `p` | Search the project | `b` | Blame |
+| `i` | imenu | `l` | Log for this file |
+| `o` | Outline | | |
+
+Three prefixes are existing Emacs keymaps rather than hand-written menus, so they stay in
+sync with upstream for free and cost one line each:
+
+| Key | Is |
+|---|---|
+| `SPC h` | the whole of `C-h` (`help-map`) |
+| `SPC p` | the whole of `C-x p` (`project-prefix-map`) |
+| `SPC w` | evil's whole window map (`evil-window-map`) |
+
+`SPC` is bound in `evil-motion-state-map`, which stays active in normal, visual and operator
+states as well as in read-only buffers (dired, magit, help, compilation). Binding it in
+`evil-normal-state-map` instead is the usual reason a hand-rolled leader "works sometimes".
 
 ### Evil
 
@@ -312,6 +356,14 @@ while the mirror served the same file in 0.27 s.
   share a setting across machines, write it in `init.el` as code.
 - **`setq` vs `setq-default`.** Many variables are buffer-local; `setq` only affects the current
   buffer. `line-spacing` is one of them.
+- **Name a prefix key with `(cons "+label" keymap)`, not with which-key.** Handed a cons,
+  `which-key-add-keymap-based-replacements` stores that cons as the binding verbatim
+  (`which-key.el:1053`), so `("+file" . nil)` replaces the sub-keymap with nil and the entire
+  prefix stops working. Its docstring says COMMAND may be nil for a prefix; that only holds for
+  the deprecated string form.
+- **A `.gitignore` without a trailing newline eats the next line you append.** `echo >>` glued
+  `/.cache/` onto `.nfs*`, producing `.nfs*/.cache/` — a pattern that matches nothing and warns
+  about nothing. `git check-ignore -v <path>` is the way to confirm a rule actually fires.
 
 ---
 
