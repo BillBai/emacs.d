@@ -55,4 +55,7 @@ Icon?
 # Linux/KDE
 .directory
 .Trash-*
-.nfs*/.cache/
+.nfs*
+
+# Generated caches (svg-lib icons downloaded by kind-icon, etc.)
+/.cache/
