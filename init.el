@@ -1,3 +1,4 @@
+;;; -*- lexical-binding: nil; -*-
 ;;;  ________                                                _______                 __                            __
 ;;; /        |                                              /       \               /  |                          /  |
 ;;; $$$$$$$$/ _____  ____   ______   _______  _______       $$$$$$$  | ______   ____$$ | ______   ______   _______$$ |   __
@@ -50,6 +51,18 @@
 	    ("nongnu" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/nongnu/")
 	    ("melpa"  . "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/"))))
 
+;; [bill] Import PATH from the login shell (macOS only).
+;;
+;; A GUI-launched Emacs gets the default system PATH, which lacks
+;; /opt/homebrew/bin -- so eglot cannot find language servers and magit falls
+;; back to the ancient /usr/bin/git. Launching from a terminal masks the
+;; problem; that is why it "only breaks sometimes".
+(use-package exec-path-from-shell
+  :ensure t
+  :if (eq system-type 'darwin)
+  :config
+  (exec-path-from-shell-initialize))
+
 ;; If you want to turn off the welcome screen, uncomment this
 ;(setopt inhibit-splash-screen t)
 
@@ -67,8 +80,26 @@
 ;; Save history of minibuffer
 (savehist-mode)
 
+;; [bill] ... and a few more histories worth keeping across sessions:
+;; kill-ring (`M-y' still works after a restart) and the search rings.
+(setopt savehist-additional-variables '(kill-ring search-ring regexp-search-ring))
+
+;; [bill] The default of 20 entries makes `consult-recent-file' (SPC f r)
+;; nearly useless. Exclude the files Emacs generates for itself.
+(setopt recentf-max-saved-items 300)
+(setopt recentf-exclude (list (concat "\\`" (regexp-quote user-emacs-directory) "elpa/")
+                              (concat "\\`" (regexp-quote user-emacs-directory) "eln-cache/")
+                              "/\\.git/"))
+
 (recentf-mode 1)
 (save-place-mode 1)
+
+;; [bill] Restore the previous session (buffers, window layout) on startup.
+;; Frames are restored too: size, position and which monitor they were on are
+;; all remembered from the last graceful quit. The desktop file lives in
+;; user-emacs-directory and is gitignored.
+(setopt desktop-restore-frames t)
+(desktop-save-mode 1)
 
 ;; Move through windows with Ctrl-<arrow keys>
 (windmove-default-keybindings 'control) ; You can use other modifiers here
@@ -91,6 +122,12 @@ If the new path's directories does not exist, create them."
     (make-directory (file-name-directory backupFilePath) (file-name-directory backupFilePath))
     backupFilePath))
 (setopt make-backup-file-name-function 'bedrock--backup-file-name)
+
+;; [bill] The *~ backup files are redirected above; do the same for the
+;; #auto-save# files, which otherwise land next to the file being edited.
+(let ((auto-save-dir (expand-file-name "auto-save/" user-emacs-directory)))
+  (make-directory auto-save-dir t)
+  (setopt auto-save-file-name-transforms `((".*" ,auto-save-dir t))))
 
 ;; The above creates nested directories in the backup folder. If
 ;; instead you would like all backup files in a flat structure, albeit
@@ -115,6 +152,23 @@ If the new path's directories does not exist, create them."
 (use-package which-key
   :config
   (which-key-mode))
+
+;; [bill] Richer help buffers: source code, call graph, references -- the
+;; describe-* replacements become the primary way to explore Emacs.
+(use-package helpful
+  :ensure t
+  :bind (("C-h f" . helpful-callable)
+         ("C-h v" . helpful-variable)
+         ("C-h k" . helpful-key)
+         ("C-h x" . helpful-command)
+         ("C-h F" . helpful-function)
+         ("C-h C-d" . helpful-at-point)))
+
+;; [bill] Real-world usage examples inside helpful's elisp buffers.
+(use-package elisp-demos
+  :ensure t
+  :config
+  (advice-add 'helpful-update :after #'elisp-demos-advice-helpful-update))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -173,7 +227,9 @@ If the new path's directories does not exist, create them."
 
 ;; Misc. UI tweaks
 (blink-cursor-mode -1)                                ; Steady cursor
-(pixel-scroll-precision-mode)                         ; Smooth scrolling
+;; [bill] Smooth scrolling is handled by ultra-scroll (extras/base.el); the
+;; built-in pixel-scroll-precision-mode conflicts with it over wheel events.
+;(pixel-scroll-precision-mode)                         ; Smooth scrolling
 
 ;; [bill] Open URLs and previews in a real browser.
 ;;
@@ -269,8 +325,19 @@ If the new path's directories does not exist, create them."
       (dolist (charset '(han cjk-misc))
 	(set-fontset-font t charset cjk nil 'prepend)))))
 
-(when (display-graphic-p)
-  (bill/setup-fonts))
+;; [bill] In daemon mode there is no graphical display at startup, so a plain
+;; (display-graphic-p) check would never fire. Defer to the first graphical
+;; client frame instead; the hook removes itself once it has done its job.
+(defun bill/setup-fonts-once (frame)
+  (with-selected-frame frame
+    (when (display-graphic-p frame)
+      (bill/setup-fonts)
+      (remove-hook 'after-make-frame-functions #'bill/setup-fonts-once))))
+
+(if (daemonp)
+    (add-hook 'after-make-frame-functions #'bill/setup-fonts-once)
+  (when (display-graphic-p)
+    (bill/setup-fonts)))
 
 (setq-default line-spacing 0.1)
 
@@ -294,10 +361,9 @@ If the new path's directories does not exist, create them."
 ;; Vim-bindings in Emacs (evil-mode configuration)
 (load-file (expand-file-name "extras/vim-like.el" user-emacs-directory))
 
-;; Org-mode configuration
-;; WARNING: need to customize things inside the elisp file before use! See
-;; the file extras/org-intro.txt for help.
-;(load-file (expand-file-name "extras/org.el" user-emacs-directory))
+;; Org-mode: plain markup/links/export only -- notes stay in Obsidian, so no
+;; agenda, capture or roam here. See extras/org-intro.txt for an overview.
+(load-file (expand-file-name "extras/org.el" user-emacs-directory))
 
 ;; Email configuration in Emacs
 ;; WARNING: needs the `mu' program installed; see the elisp file for more
@@ -324,5 +390,16 @@ If the new path's directories does not exist, create them."
 
 (setq custom-file (locate-user-emacs-file "custom.el"))
 (load custom-file t t)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;   Machine-local settings
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; local.el is not tracked by git; use it for per-machine overrides.
+(let ((local-file (expand-file-name "local.el" user-emacs-directory)))
+  (when (file-exists-p local-file)
+    (load-file local-file)))
 
 (setq gc-cons-threshold (or bedrock--initial-gc-threshold 800000))

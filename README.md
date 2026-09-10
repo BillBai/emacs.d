@@ -1,7 +1,7 @@
 # Emacs Configuration
 
 Personal Emacs setup built on [Emacs Bedrock](https://codeberg.org/ashton314/emacs-bedrock) 1.5.0.
-Emacs 30.2 (pgtk build) on Arch Linux, KDE/Wayland.
+Emacs 30.2 on Arch Linux (pgtk, KDE/Wayland) and macOS.
 
 **Design goals**
 
@@ -21,16 +21,21 @@ Emacs 30.2 (pgtk build) on Arch Linux, KDE/Wayland.
 ├── early-init.el          frame defaults, GC tuning (runs before the GUI exists)
 ├── init.el                main config; loads everything below at the bottom
 ├── extras/                copied verbatim from Bedrock, then edited
-│   ├── base.el            vertico, consult, corfu, embark, cape, avy, eat, wgrep
-│   ├── dev.el             magit, eglot, tempel, markdown/yaml/json modes
-│   ├── vim-like.el        evil, evil-collection, evil-commentary
-│   ├── writer.el          olivetti (centred prose), jinx (spell-check, text-mode only)
-│   └── org.el, email.el, researcher.el              ← present but NOT loaded
+│   ├── base.el            vertico, consult, corfu, embark, cape, avy, eat, vterm, wgrep,
+│   │                      pulsar, hl-todo, indent-bars, solaire, topsy,
+│   │                      ultra-scroll, rainbow-mode, nerd-icons
+│   ├── dev.el             magit, diff-hl, eglot, tempel, markdown/yaml/json modes
+│   ├── vim-like.el        evil, evil-collection, evil-commentary (per-state cursor colors)
+│   ├── writer.el          olivetti (centred prose), jinx (spell-check, text-mode only),
+│   │                      mixed-pitch, visual-fill-column
+│   ├── org.el             plain org-mode (markup/links/export only; no agenda/roam)
+│   └── email.el, researcher.el                      ← present but NOT loaded
 ├── lisp/
 │   ├── programming.el     mine: tree-sitter grammars, major modes, eglot, Racket
 │   └── keys.el            mine: the SPC leader map
 ├── templates              tempel snippet definitions
 ├── custom.el              written by Emacs (gitignored — machine-local)
+├── local.el               machine-local overrides (gitignored — e.g. font height on the Mac)
 ├── elpa/  eln-cache/  tree-sitter/                  ← build output, gitignored
 └── README.md              this file
 ```
@@ -44,9 +49,11 @@ early-init.el
     → extras/dev.el
     → extras/vim-like.el
     → extras/writer.el
+    → extras/org.el
     → lisp/programming.el
     → lisp/keys.el         ← last; needs evil-window-map to exist
-  → custom.el              ← loaded last, so Customize settings win
+  → custom.el              ← written by Customize
+  → local.el               ← machine-local, gitignored; wins over everything above
 ```
 
 Anything loaded later overrides anything loaded earlier. `base.el`, for example, replaces
@@ -147,7 +154,7 @@ Emacs keys still work in normal state — evil does not remove them.
 | `C-n` / `C-p` | Next/previous candidate in the corfu popup |
 | `SPC` (in popup) | Insert a separator — lets you type `foo bar` to match `fooBarBaz` |
 | `TAB` (minibuffer) | Complete |
-| `M-DEL` (find-file) | Delete one path component |
+| `M-DEL` (find-file) | Delete a whole path component at once |
 
 Minibuffer completion is `vertico` + `orderless` (space-separated fragments, any order) +
 `marginalia` (the annotations on the right).
@@ -248,13 +255,32 @@ using Racket's own `check-syntax` backend.
 | `tempel` | Snippets (definitions live in `templates`) |
 | `racket-mode`, `rainbow-delimiters` | Scheme/SICP |
 | `markdown-mode`, `yaml-mode`, `json-mode` | File types |
-| `eat`, `wgrep` | Terminal emulation; editable grep results |
+| `eat`, `vterm`, `wgrep` | Terminal emulation (eat for eshell, vterm for full TUIs); editable grep results |
+| `pulsar`, `hl-todo`, `indent-bars` | Eye candy: flash on jump, TODO highlights, thin indent guides |
+| `diff-hl` | Fringe markers for uncommitted changes, live (flydiff) |
+| `topsy` | Sticky header: enclosing defun's signature stays at window top |
+| `ultra-scroll` | Trackpad-smooth scrolling (replaces pixel-scroll-precision) |
+| `solaire-mode` | Slightly darker background for tool buffers (dired, help, terminals) |
+| `nerd-icons` (+ `-completion`, `-ibuffer`) | File-type icons; needs Symbols Nerd Font (see setup) |
+| `dirvish` | Modern dired: previews, icons, git status (dired keys keep working) |
+| `treesit-fold` | Code folding via tree-sitter; evil's `za`/`zo`/`zc` work out of the box |
+| `dape` | Debugger (DAP client); needs a debug adapter per language, `M-x dape` |
+| `evil-mc` | Multiple cursors (`gz` prefix in normal/visual state) |
+| `org` *(built-in)* | Plain org markup/links/export; no agenda/roam |
+| `sis` | Sync system IME with evil state (normal→ABC, insert→WeType); needs `macism` on macOS |
+| `desktop` *(built-in)* | Restore previous session (buffers, window layout) on startup |
+| `mixed-pitch`, `visual-fill-column` | Prose typography: variable-pitch body text; centred wrap column |
+| `rainbow-mode` | Render color codes as color swatches (elisp/CSS/conf) |
+| `breadcrumb`, `ace-window`, `consult-dir` | Header path (project›file›symbol); `M-o` jump to window by letter; jump to recent dirs |
+| `helpful`, `elisp-demos` | Richer help buffers with source and usage examples (`C-h f/v/k` remapped) |
+| `editorconfig` *(built-in)* | Honor `.editorconfig` files per project |
+| `exec-path-from-shell` | macOS only: import `PATH` from the login shell, so GUI launches see Homebrew |
 | `solarized-theme` | Theme (`solarized-gruvbox-light`) |
 | `which-key` *(built-in in Emacs 30)* | Keybinding popups |
 
 Deliberately **not** installed: `lsp-mode` (eglot is built in), `flycheck` (flymake is built in),
 `projectile` (project.el is built in), `general.el` (`defvar-keymap` is enough), `undo-tree`,
-`doom-modeline`, and anything that talks to an LLM.
+`doom-modeline`, `org-roam` (notes live in Obsidian), and anything that talks to an LLM.
 
 ---
 
@@ -273,7 +299,22 @@ Then install the external tools:
 sudo pacman -S emacs-wayland clangd cmake pyright ruff typescript-language-server racket
 rustup component add rust-analyzer
 raco pkg install sicp
+
+# macOS (Homebrew)
+xcode-select --install   # provides clangd
+brew install cmake libvterm pyright ruff rust-analyzer typescript-language-server racket
+brew install --cask font-symbols-only-nerd-font   # icons for nerd-icons
+# macism is not in Homebrew -- single binary, needed by sis (IME switching):
+curl -L -o ~/.local/bin/macism https://github.com/laishulu/macism/releases/latest/download/macism-arm64
+chmod +x ~/.local/bin/macism
+raco pkg install sicp
 ```
+
+The language servers must be on `PATH` — eglot scans `eglot-server-programs` for the
+first executable that exists. On macOS, `exec-path-from-shell` (configured in `init.el`)
+makes GUI launches see `/opt/homebrew/bin`; without it, only terminal launches find the
+servers. `vterm` compiles its module on first use (`M-x vterm`), which needs `cmake` and
+the system `libvterm`.
 
 Start Emacs — packages install themselves from the `:ensure t` declarations. Then:
 

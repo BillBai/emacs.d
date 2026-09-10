@@ -8,7 +8,9 @@
 
 # Runtime state
 /custom.el
+/local.el
 /auto-save-list/
+/auto-save/
 /emacs-backup/
 /url/
 /transient/

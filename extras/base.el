@@ -1,3 +1,4 @@
+;;; -*- lexical-binding: nil; -*-
 ;;; Emacs Bedrock
 ;;;
 ;;; Extra config: Base enhancements
@@ -102,6 +103,7 @@
   ;; You'll want to make sure that e.g. fido-mode isn't enabled
   (vertico-mode))
 
+;; [bill] M-DEL eats a whole path component at once during find-file.
 (use-package vertico-directory
   :ensure nil
   :after vertico
@@ -118,7 +120,7 @@
 (use-package corfu
   :ensure t
   :init
-  (global-corfu-mode)
+  (global-corfu-mode 1)
   :bind
   (:map corfu-map
         ("SPC" . corfu-insert-separator)
@@ -143,7 +145,7 @@
 
 ;; Make corfu popup come up in terminal overlay
 (use-package corfu-terminal
-  :if (not (display-graphic-p))
+  :if (and (< emacs-major-version 31) (not (display-graphic-p)))
   :ensure t
   :config
   (corfu-terminal-mode))
@@ -181,6 +183,16 @@
   (eat-eshell-mode)                     ; use Eat to handle term codes in program output
   (eat-eshell-visual-command-mode))     ; commands like less will be handled by Eat
 
+;; [bill] vterm: a real terminal emulator (libvterm-backed), for the cases
+;; where eat is not enough -- full-screen TUI programs, SSH sessions, etc.
+;; The first `M-x vterm' offers to compile its module, which needs cmake.
+;; evil already starts vterm buffers in emacs state (extras/vim-like.el).
+;; `:commands' keeps it deferred: loading vterm.el checks for the compiled
+;; module and would otherwise prompt on every startup.
+(use-package vterm
+  :ensure t
+  :commands vterm)
+
 ;; Orderless: powerful completion style
 (use-package orderless
   :ensure t
@@ -203,3 +215,124 @@
   :ensure t
   :config
   (setq wgrep-auto-save-buffer t))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;   Eye candy (visual feedback)
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; [bill] Briefly flash the line point lands on after a jump -- window switch,
+;; scroll, consult pick. Cheap, and genuinely helps re-acquire the cursor.
+(use-package pulsar
+  :ensure t
+  :config
+  (pulsar-global-mode 1)
+  ;; consult jumps (SPC s s, SPC /, imenu, ...) don't trigger the built-in
+  ;; pulse hooks, so wire them up here.
+  (add-hook 'consult-after-jump-hook #'pulsar-recenter-top))
+
+;; [bill] Highlight TODO/FIXME/NOTE in code comments. Prose is jinx's job.
+(use-package hl-todo
+  :ensure t
+  :hook (prog-mode . hl-todo-mode))
+
+;; [bill] Indentation guides: one thin, quiet, uniform line per level.
+;; Character-based (│), NOT stipple: on Retina/NS the stipple bitmap is
+;; computed in logical pixels (window-font-width) but drawn unscaled, so it
+;; tiles and shows TWO bars per column. One faint color for all depths, and
+;; no current-depth highlight (a second shade also reads as a double line).
+(use-package indent-bars
+  :ensure t
+  :hook (prog-mode . indent-bars-mode)
+  :custom
+  (indent-bars-prefer-character t)   ; draw │ glyphs, immune to stipple scaling
+  (indent-bars-color-by-depth nil)
+  (indent-bars-color '("#bdae93"))   ; gruvbox light3: visible but quiet
+  (indent-bars-highlight-current-depth nil))
+
+;; [bill] Slightly darken the background of "tool" buffers (dired, help,
+;; terminals, ...) so file-visiting buffers stand out.
+(use-package solaire-mode
+  :ensure t
+  :config
+  (solaire-global-mode 1))
+
+;; [bill] File-type icons in completion lists and ibuffer. (dired gets its
+;; icons from dirvish, see the navigation section.) Requires a Symbols Nerd
+;; Font on the system (macOS:
+;; `brew install --cask font-symbols-only-nerd-font'); the body font is
+;; untouched -- icons come from the separate symbols font.
+(use-package nerd-icons
+  :ensure t)
+
+(use-package nerd-icons-completion
+  :ensure t
+  :after marginalia
+  :config
+  (nerd-icons-completion-mode))
+
+(use-package nerd-icons-ibuffer
+  :ensure t
+  :hook (ibuffer-mode . nerd-icons-ibuffer-mode))
+
+;; [bill] Trackpad-smooth scrolling. Replaces pixel-scroll-precision-mode
+;; (disabled in init.el -- the two fight over scroll events).
+(use-package ultra-scroll
+  :ensure t
+  :init
+  (setq scroll-conservatively 101
+        scroll-margin 2)
+  :config
+  (ultra-scroll-mode 1))
+
+;; [bill] Stick the enclosing defun's signature to the top of the window once
+;; its own line scrolls out of view. Treesitter-aware where grammars exist.
+(use-package topsy
+  :ensure t
+  :hook (prog-mode . topsy-mode))
+
+;; [bill] Render color codes (#b57614, rgb(...), ...) as swatches of the color
+;; itself. Only where colors are expected: themes and stylesheets.
+(use-package rainbow-mode
+  :ensure t
+  :hook ((css-mode emacs-lisp-mode conf-mode) . rainbow-mode))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;   Navigation extras
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; [bill] Jump to a window by letter when more than two are open (complements
+;; C-<arrows> windmove, which gets tedious with many windows).
+(use-package ace-window
+  :ensure t
+  :bind ("M-o" . ace-window)
+  :custom
+  (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
+
+;; [bill] Jump to recently-used directories; C-x C-j switches to a *file*
+;; inside the chosen directory. Works inside any minibuffer path prompt.
+(use-package consult-dir
+  :ensure t
+  :bind (("C-x C-d" . consult-dir)
+         :map vertico-map
+         ("C-x C-d" . consult-dir)
+         ("C-x C-j" . consult-dir-jump-file)))
+
+;; [bill] dirvish: a modern dired -- file previews, icons, git status -- while
+;; staying inside the dired paradigm (no treemacs-style sidebar). All dired
+;; keys keep working; evil keys come from evil-collection.
+(use-package dirvish
+  :ensure t
+  :init
+  (dirvish-override-dired-mode))
+
+;; [bill] Disabled: Breadcrumb expects a list in header-line-format, but
+;; Topsy uses a symbol. Keep Topsy as the sole header-line provider.
+(use-package breadcrumb
+  :disabled t
+  :ensure t
+  :config
+  (breadcrumb-mode 1))

@@ -69,8 +69,16 @@
 
 (use-package rainbow-delimiters
   :ensure t
-  :hook ((emacs-lisp-mode lisp-data-mode racket-mode racket-repl-mode)
-         . rainbow-delimiters-mode))
+  ;; [bill] Everywhere in code, not just lisps.
+  :hook (prog-mode . rainbow-delimiters-mode))
+
+;;;  Code folding
+
+;; [bill] Treesitter-based folding (uses the same grammars as the ts-modes).
+(use-package treesit-fold
+  :ensure t
+  :config
+  (global-treesit-fold-mode 1))
 
 (with-eval-after-load 'evil
   (evil-set-initial-state 'racket-repl-mode 'insert))

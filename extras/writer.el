@@ -1,3 +1,4 @@
+;;; -*- lexical-binding: nil; -*-
 ;;; Emacs Bedrock
 ;;;
 ;;; Extra config: Writer
@@ -83,3 +84,34 @@
   :hook ((markdown-mode . olivetti-mode))
   :custom
   (olivetti-body-width 90))
+
+;; [bill] Variable-pitch prose, fixed-pitch code and tables. Body text reads
+;; much better in a proportional font; the fixed list keeps code spans,
+;; blocks and tables aligned. CJK falls back to the system proportional font
+;; (PingFang) -- customize the `variable-pitch' face to change that.
+(use-package mixed-pitch
+  :ensure t
+  :hook (markdown-mode . mixed-pitch-mode)
+  :config
+  (dolist (face '(markdown-code-face
+                  markdown-inline-code-face
+                  markdown-pre-face
+                  markdown-table-face
+                  markdown-language-keyword-face
+                  markdown-language-info-face))
+    (add-to-list 'mixed-pitch-fixed-pitch-faces face)))
+
+;; [bill] Soft-wrap at `fill-column' and center the column, for plain text.
+;; Markdown uses olivetti instead -- both manage window margins and would
+;; fight over the same buffer (markdown-mode derives from text-mode, so
+;; text-mode-hook fires there too; hence the guard).
+(use-package visual-fill-column
+  :ensure t
+  :custom
+  (visual-fill-column-center-text t)
+  :init
+  (defun bill/maybe-visual-fill-column ()
+    "Enable `visual-fill-column-mode' unless olivetti is in charge."
+    (unless (derived-mode-p 'markdown-mode)
+      (visual-fill-column-mode)))
+  :hook (text-mode . bill/maybe-visual-fill-column))

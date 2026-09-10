@@ -1,3 +1,4 @@
+;;; -*- lexical-binding: nil; -*-
 ;;;  ________                                                _______                 __                            __
 ;;; /        |                                              /       \               /  |                          /  |
 ;;; $$$$$$$$/ _____  ____   ______   _______  _______       $$$$$$$  | ______   ____$$ | ______   ______   _______$$ |   __
@@ -32,6 +33,12 @@
 (when (boundp 'tool-bar-mode) ; When in a GUI, disable tool bar;
   (tool-bar-mode -1))        ; all these tools are in the menu-bar anyway
 
+;; [bill] Scroll bars are noise; the fringe indicators already show position.
+(when (boundp 'scroll-bar-mode)
+  (scroll-bar-mode -1))
+(when (boundp 'horizontal-scroll-bar-mode)
+  (horizontal-scroll-bar-mode -1))
+
 ;; (setq default-frame-alist '((fullscreen . maximized)
 
 ;;                             ;; You can turn off scroll bars by uncommenting these lines:
@@ -45,8 +52,10 @@
 ;;                             (ns-appearance . dark)
 ;;                             (ns-transparent-titlebar . t)))
 
-(setq default-frame-alist '((fullscreen . maximized)
-                            (internal-border-width . 12)
+;; [bill] No (fullscreen . maximized) here: desktop-restore-frames (init.el)
+;; brings back the size/position/monitor from the last quit, and a hardcoded
+;; maximized would fight that.
+(setq default-frame-alist '((internal-border-width . 12)
                             (background-color . "#fbf1c7")
                             (foreground-color . "#3c3836")
                             (ns-appearance . light)

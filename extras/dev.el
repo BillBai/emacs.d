@@ -1,3 +1,4 @@
+;;; -*- lexical-binding: nil; -*-
 ;;; Emacs Bedrock
 ;;;
 ;;; Extra config: Development tools
@@ -32,6 +33,9 @@
   :config
   ;; Treesitter config
 
+  ;; [bill] Read .editorconfig files (indent style, EOL, charset) per project.
+  (editorconfig-mode 1)
+
   ;; Tell Emacs to prefer the treesitter mode
   ;; You'll want to run the command `M-x treesit-install-language-grammar' before editing.
   ;; (setq major-mode-remap-alist
@@ -61,6 +65,18 @@
 (use-package magit
   :ensure t
   :bind (("C-x g" . magit-status)))
+
+;; [bill] Fringe markers for uncommitted changes (added/modified/deleted
+;; lines). flydiff keeps them live without saving; the magit hooks refresh
+;; them around staging/committing.
+(use-package diff-hl
+  :ensure t
+  :hook (dired-mode . diff-hl-dired-mode)
+  :config
+  (global-diff-hl-mode 1)
+  (diff-hl-flydiff-mode 1)
+  (add-hook 'magit-pre-refresh-hook #'diff-hl-magit-pre-refresh)
+  (add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -120,6 +136,12 @@
   ; (add-to-list 'eglot-server-programs
   ;              '(haskell-mode . ("haskell-language-server-wrapper" "--lsp")))
   )
+
+;; [bill] Debug Adapter Protocol client -- the debugger half that eglot does
+;; not cover. Needs a debug adapter per language (lldb-dap ships with the
+;; Xcode CLT / LLVM; debugpy via pip for Python). Start with `M-x dape'.
+(use-package dape
+  :ensure t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
