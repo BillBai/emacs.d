@@ -1,4 +1,5 @@
-;;; -*- lexical-binding: nil; -*-
+;;; -*- lexical-binding: t -*-
+;;;
 ;;; Emacs Bedrock
 ;;;
 ;;; Extra config: Development tools
@@ -31,29 +32,31 @@
 
 (use-package emacs
   :config
+  ;; Code folding config
+  ;(setopt hs-show-indicators t)         ; Show collapse indicators in margin
+  ;(setopt hs-display-lines-hidden t)    ; Show number of collapsed lines
+
+
   ;; Treesitter config
 
-  ;; [bill] Read .editorconfig files (indent style, EOL, charset) per project.
-  (editorconfig-mode 1)
+  ;; Enable tree-sitter in all available modes
+  (setopt treesit-enabled-modes t)
 
-  ;; Tell Emacs to prefer the treesitter mode
-  ;; You'll want to run the command `M-x treesit-install-language-grammar' before editing.
-  ;; (setq major-mode-remap-alist
-  ;;       '((yaml-mode . yaml-ts-mode)
-  ;;         (bash-mode . bash-ts-mode)
-  ;;         (js2-mode . js-ts-mode)
-  ;;         (typescript-mode . typescript-ts-mode)
-  ;;         (json-mode . json-ts-mode)
-  ;;         (css-mode . css-ts-mode)
-  ;;         (python-mode . python-ts-mode)))
+  ;; Amount to highlight: integer between 1-4; 4 is max highlighting
+  (setopt treesit-font-lock-level 3)
+
+  ;; What to do if language grammar not installed: default is `ask';
+  ;; other options are `always', and `ask-dir'.
+  (setopt treesit-auto-install-grammar 'ask)
+
   :hook
   ;; Auto parenthesis matching
   ((prog-mode . electric-pair-mode)))
 
 (use-package project
-  :config
+  :custom
   (when (>= emacs-major-version 30)
-    (setopt project-mode-line t)))         ; show project name in modeline
+    (project-mode-line t)))         ; show project name in modeline
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -63,20 +66,7 @@
 
 ;; Magit: best Git client to ever exist
 (use-package magit
-  :ensure t
   :bind (("C-x g" . magit-status)))
-
-;; [bill] Fringe markers for uncommitted changes (added/modified/deleted
-;; lines). flydiff keeps them live without saving; the magit hooks refresh
-;; them around staging/committing.
-(use-package diff-hl
-  :ensure t
-  :hook (dired-mode . diff-hl-dired-mode)
-  :config
-  (global-diff-hl-mode 1)
-  (diff-hl-flydiff-mode 1)
-  (add-hook 'magit-pre-refresh-hook #'diff-hl-magit-pre-refresh)
-  (add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -85,25 +75,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-package markdown-mode
-  :ensure t
-  :mode ("\\.md\\'" . gfm-mode)
-  :hook ((markdown-mode . visual-line-mode)
-	 (markdown-mode . visual-wrap-prefix-mode))
-  :custom
-  (markdown-command "pandoc")
-  (markdown-fontify-code-blocks-natively t)
-  (markdown-fontify-whole-heading-line t)
-  (markdown-header-scaling t)
-  (markdown-enable-math t)
-  (markdown-enable-wiki-links t)
-  (markdown-wiki-link-search-type '(project sub-directories)))
+  :hook ((markdown-mode . visual-line-mode)))
 
+(use-package yaml-mode)
 
-(use-package yaml-mode
-  :ensure t)
-
-(use-package json-mode
-  :ensure t)
+(use-package json-mode)
 
 ;; Emacs ships with a lot of popular programming language modes. If it's not
 ;; built in, you're almost certain to find a mode for the language you're
@@ -131,17 +107,22 @@
   (eglot-extend-to-xref t)              ; activate Eglot in referenced non-project files
 
   :config
+  ;; Avoid changing line heights if your font is wonky. See
+  ;; https://github.com/joaotavora/eglot/discussions/1492
+  (setopt eglot-code-action-indicator "h")
+
   (fset #'jsonrpc--log-event #'ignore)  ; massive perf boost---don't log every event
   ;; Sometimes you need to tell Eglot where to find the language server
   ; (add-to-list 'eglot-server-programs
   ;              '(haskell-mode . ("haskell-language-server-wrapper" "--lsp")))
-  )
 
-;; [bill] Debug Adapter Protocol client -- the debugger half that eglot does
-;; not cover. Needs a debug adapter per language (lldb-dap ships with the
-;; Xcode CLT / LLVM; debugpy via pip for Python). Start with `M-x dape'.
-(use-package dape
-  :ensure t)
+  ;; You can set various options for each language server. For
+  ;; example, you can raise the number of completions surfaced by a
+  ;; given langauge server to Emacs:
+  (setopt eglot-workspace-configuration
+	  '((haskell (maxCompletions . 100))
+	    (elixir  (maxCompletions . 100))))
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -150,7 +131,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-package tempel
-  :ensure t
   ;; By default, tempel looks at the file "templates" in
   ;; user-emacs-directory, but you can customize that with the
   ;; tempel-path variable:
@@ -173,3 +153,22 @@
   ;; writing prose.
   (add-hook 'prog-mode-hook 'tempel-setup-capf)
   (add-hook 'text-mode-hook 'tempel-setup-capf))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;   Programming Languages
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Racket/SICP
+(use-package racket-mode
+  :ensure t
+  :mode ("\\.rkt\\'" . racket-mode)
+  :hook (racket-mode . racket-xp-mode))
+
+
+;; Python
+(use-package python
+  :ensure nil
+  :mode ("\\.py\\'" . python-ts-mode)
+  :hook (python-ts-mode . eglot-ensure))

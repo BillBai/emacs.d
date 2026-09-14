@@ -1,4 +1,4 @@
-;;; -*- lexical-binding: nil; -*-
+;;; -*- lexical-binding: t -*-
 ;;;  ________                                                _______                 __                            __
 ;;; /        |                                              /       \               /  |                          /  |
 ;;; $$$$$$$$/ _____  ____   ______   _______  _______       $$$$$$$  | ______   ____$$ | ______   ______   _______$$ |   __
@@ -15,7 +15,7 @@
 ;;;
 ;;;  - Basic settings
 ;;;  - Discovery aids
-;;;  - Minibuffer/completion settings
+;;;  - Minibuffer/completion/searching settings
 ;;;  - Interface enhancements/defaults
 ;;;  - Tab-bar configuration
 ;;;  - Theme
@@ -24,8 +24,8 @@
 
 ;;; Guardrail
 
-(when (< emacs-major-version 29)
-  (error "Emacs Bedrock only works with Emacs 29 and newer; you have version %s" emacs-major-version))
+(when (< emacs-major-version 31)
+  (error "Emacs Bedrock only works with Emacs 31 and newer; you have version %s" emacs-major-version))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -35,33 +35,15 @@
 
 ;; Package initialization
 ;;
-;; We'll stick to the built-in GNU and non-GNU ELPAs (Emacs Lisp Package
-;; Archive) for the base install, but there are some other ELPAs you could look
-;; at if you want more packages. MELPA in particular is very popular. See
-;; instructions at:
+;; Emacs ships with a bunch of Emacs Lisp package archives ("ELPAs")
+;; pre-configured. The MELPA archive is the biggest package archive
+;; out there. Most of the packages Bedrock uses in the extras/ folder
+;; come from the built-in ELPAs, but a few (notably Citar in
+;; extras/researcher.el) are on MELPA.
 ;;
-;;    https://melpa.org/#/getting-started
-;;
-;; You can simply uncomment the following if you'd like to get started with
-;; MELPA packages quickly:
-;;
+;; These lines add MELPA to the list of ELPAs that Emacs will read.
 (with-eval-after-load 'package
-  (setopt package-archives
-	  '(("gnu" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
-	    ("nongnu" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/nongnu/")
-	    ("melpa"  . "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/"))))
-
-;; [bill] Import PATH from the login shell (macOS only).
-;;
-;; A GUI-launched Emacs gets the default system PATH, which lacks
-;; /opt/homebrew/bin -- so eglot cannot find language servers and magit falls
-;; back to the ancient /usr/bin/git. Launching from a terminal masks the
-;; problem; that is why it "only breaks sometimes".
-(use-package exec-path-from-shell
-  :ensure t
-  :if (eq system-type 'darwin)
-  :config
-  (exec-path-from-shell-initialize))
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
 
 ;; If you want to turn off the welcome screen, uncomment this
 ;(setopt inhibit-splash-screen t)
@@ -69,46 +51,57 @@
 (setopt initial-major-mode 'fundamental-mode)  ; default mode for the *scratch* buffer
 (setopt display-time-default-load-average nil) ; this information is useless for most
 
-;; Automatically reread from disk if the underlying file changes
-(setopt auto-revert-avoid-polling t)
+;; Automatically reread from disk if the underlying file changes by
+;; using the OS file change notification interface rather than
+;; repeatedly polling to see if there are changes.
+;;
 ;; Some systems don't do file notifications well; see
 ;; https://todo.sr.ht/~ashton314/emacs-bedrock/11
+;; Set this to `nil' if Emacs is having trouble picking up changes.
+(setopt auto-revert-avoid-polling t)
 (setopt auto-revert-interval 5)
 (setopt auto-revert-check-vc-info t)
 (global-auto-revert-mode)
 
-;; Save history of minibuffer
+;; Save history of minibuffer: future invocations will have
+;; recently-used selections sorted first
 (savehist-mode)
 
-;; [bill] ... and a few more histories worth keeping across sessions:
-;; kill-ring (`M-y' still works after a restart) and the search rings.
-(setopt savehist-additional-variables '(kill-ring search-ring regexp-search-ring))
+;; Save existing clipboard content to the kill ring---useful if you've
+;; copied something from an external program and then kill some text
+;; in Emacs shortly after. Also, deduplicate kill ring contents.
+(setopt save-interprogram-paste-before-kill t)
+(setopt kill-do-not-save-duplicates t)
 
-;; [bill] The default of 20 entries makes `consult-recent-file' (SPC f r)
-;; nearly useless. Exclude the files Emacs generates for itself.
-(setopt recentf-max-saved-items 300)
-(setopt recentf-exclude (list (concat "\\`" (regexp-quote user-emacs-directory) "elpa/")
-                              (concat "\\`" (regexp-quote user-emacs-directory) "eln-cache/")
-                              "/\\.git/"))
-
-(recentf-mode 1)
-(save-place-mode 1)
-
-;; [bill] Restore the previous session (buffers, window layout) on startup.
-;; Frames are restored too: size, position and which monitor they were on are
-;; all remembered from the last graceful quit. The desktop file lives in
-;; user-emacs-directory and is gitignored.
-(setopt desktop-restore-frames t)
-(desktop-save-mode 1)
+;; Don't ping url-looking things when running find-file
+(setopt ffap-machine-p-known 'reject)
 
 ;; Move through windows with Ctrl-<arrow keys>
 (windmove-default-keybindings 'control) ; You can use other modifiers here
 
-;; Fix archaic defaults
+;; Rebalance windows automatically when splitting
+(setopt window-combination-resize t)
+
+;; On macOS, make the first click raise the window but don't
+;; reposition the cursor to where the click happened.
+(setopt ns-click-through nil)
+
+;; Prefer horizontal split on landscape monitors: `longest' is
+;; default; can be `vertical' or `horizontal'.
+;; See also the variable `split-width-threshold'.
+(setopt split-window-preferred-direction 'longest)
+
+;; Fix archaic defaults; justification: https://practicaltypography.com/one-space-between-sentences.html
 (setopt sentence-end-double-space nil)
 
-;; Make right-click do something sensible
+;; Make all confirmation prompts use `y' or `n'. Default is for some
+;; prompts to ask for a full `yes' or `no' when the operation is
+;; potentially dangerous. Commented out to keep the safer behavior.
+(setopt use-short-answers t)
+
+;; Make right-click do something sensible and shift-drag behave better
 (when (display-graphic-p)
+  (mouse-shift-adjust-mode)
   (context-menu-mode))
 
 ;; Don't litter file system with *~ backup files; put them all inside
@@ -123,12 +116,6 @@ If the new path's directories does not exist, create them."
     backupFilePath))
 (setopt make-backup-file-name-function 'bedrock--backup-file-name)
 
-;; [bill] The *~ backup files are redirected above; do the same for the
-;; #auto-save# files, which otherwise land next to the file being edited.
-(let ((auto-save-dir (expand-file-name "auto-save/" user-emacs-directory)))
-  (make-directory auto-save-dir t)
-  (setopt auto-save-file-name-transforms `((".*" ,auto-save-dir t))))
-
 ;; The above creates nested directories in the backup folder. If
 ;; instead you would like all backup files in a flat structure, albeit
 ;; with their full paths concatenated into a filename, then you can
@@ -138,14 +125,35 @@ If the new path's directories does not exist, create them."
 ;; (let ((backup-dir (expand-file-name "emacs-backup/" user-emacs-directory)))
 ;;   (setopt backup-directory-alist `(("." . ,backup-dir))))
 
+;; Basic speedups
+;;
+;; Emacs works really hard to be incredibly compatible out-of-the-box
+;; with a wide variety of languages. That comes at the cost of a
+;; little performance. These tell Emacs to assume left-to-right text
+;; in all buffers.
+;; Remove/comment if you read right-to-left languages (Arabic, Hebrew, etc.)
+(setq-default bidi-paragraph-direction 'left-to-right)
+(setq bidi-inhibit-bpa t)
+
+;; Remember recently opened files and cursor positions
+(recentf-mode 1)
+(save-place-mode 1)
+
+(setopt recentf-max-saved-items 300)
+(setopt recentf-exclude
+	(list (concat "\\`" (regexp-quote user-emacs-directory) "elpa/")
+	      (concat "\\`" (regexp-quote user-emacs-directory) "eln-cache/")
+	      "/\\.git/"))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;   Discovery aids
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Show the help buffer after startup
-;; (add-hook 'after-init-hook 'help-quick)
+;; Show the help buffer after startup---makes it a little bit like nano
+(add-hook 'after-init-hook 'help-quick)
+(setopt view-lossage-auto-refresh t)
 
 ;; which-key: shows a popup of available keybindings when typing a long key
 ;; sequence (e.g. C-x ...)
@@ -153,26 +161,9 @@ If the new path's directories does not exist, create them."
   :config
   (which-key-mode))
 
-;; [bill] Richer help buffers: source code, call graph, references -- the
-;; describe-* replacements become the primary way to explore Emacs.
-(use-package helpful
-  :ensure t
-  :bind (("C-h f" . helpful-callable)
-         ("C-h v" . helpful-variable)
-         ("C-h k" . helpful-key)
-         ("C-h x" . helpful-command)
-         ("C-h F" . helpful-function)
-         ("C-h C-d" . helpful-at-point)))
-
-;; [bill] Real-world usage examples inside helpful's elisp buffers.
-(use-package elisp-demos
-  :ensure t
-  :config
-  (advice-add 'helpful-update :after #'elisp-demos-advice-helpful-update))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;;   Minibuffer/completion settings
+;;;   Minibuffer/completion/searching settings
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -184,12 +175,20 @@ If the new path's directories does not exist, create them."
 (setopt tab-always-indent 'complete)                   ; When I hit TAB, try to complete, otherwise, indent
 (setopt completion-styles '(basic initials substring)) ; Different styles to match input to candidates
 
+(setopt minibuffer-visible-completions t)              ; Use ↑↓ to select candidates
 (setopt completion-auto-help 'always)                  ; Open completion always; `lazy' another option
-(setopt completions-max-height 20)                     ; This is arbitrary
-(setopt completions-format 'one-column)
+(setopt completions-max-height 20)                     ; This is an arbitrary value
+(setopt completions-format 'one-column)                ; Makes it easier to scroll
 (setopt completions-group t)
+
+;; Eager completion setup: show *Completions* buffer immediately
 (setopt completion-auto-select 'second-tab)            ; Much more eager
-;(setopt completion-auto-select t)                     ; See `C-h v completion-auto-select' for more possible values
+(setopt completion-eager-display t)                    ; Show the completions buffer immediately
+(setopt completion-eager-update t)                     ; Update display as-you-type
+
+;; Uncomment to get automatic inline completion previews
+;(completion-preview-mode)
+
 
 (keymap-set minibuffer-mode-map "TAB" 'minibuffer-complete) ; TAB acts more like how it does in the shell
 
@@ -200,6 +199,22 @@ If the new path's directories does not exist, create them."
 ;(fido-vertical-mode)
 ;(setopt icomplete-delay-completions-threshold 4000)
 
+
+;; isearch is Emacs's built-in searching system
+(use-package isearch
+  :ensure nil                           ; already installed
+  :bind
+  (:map isearch-mode-map
+        ("C-." . isearch-forward-thing-at-point)) ; Search for thing under cursor
+  :custom
+  (lazy-count-prefix-format "(%s/%s) ")
+  (isearch-lazy-count t)                 ; show match count
+  (isearch-allow-motion t)
+  (isearch-allow-scroll t)               ; lets you scroll without breaking search
+  (isearch-repeat-on-direction-change t) ; C-r immediately goes to previous match
+  (isearch-wrap-pause 'no-ding)          ; Automatically wrap search to top
+  )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;   Interface enhancements/defaults
@@ -209,6 +224,7 @@ If the new path's directories does not exist, create them."
 ;; Mode line information
 (setopt line-number-mode t)                        ; Show current line in modeline
 (setopt column-number-mode t)                      ; Show column as well
+(setopt mode-line-collapse-minor-modes nil)        ; nil default; set to `t' to hide minor modes
 
 (setopt x-underline-at-descent-line nil)           ; Prettier underlines
 (setopt switch-to-buffer-obey-display-actions t)   ; Make switching buffers more consistent
@@ -220,39 +236,28 @@ If the new path's directories does not exist, create them."
 (setopt mouse-wheel-tilt-scroll t)
 (setopt mouse-wheel-flip-direction t)
 
-;; We won't set these, but they're good to know about
-;;
-;; (setopt indent-tabs-mode nil)
-;; (setopt tab-width 4)
+;; Update the cursor shape inside a terminal; e.g. when in insert mode
+;; when using Evil (Vim emulation) change the cursor to a bar.
+(setopt xterm-update-cursor t)
+
+;; These are too personal to prescribe a default; uncomment and
+;; configure according to your tastes
+;(setopt indent-tabs-mode nil) ; Only use spaces to perform indentation
+;(setopt tab-width 4)
 
 ;; Misc. UI tweaks
 (blink-cursor-mode -1)                                ; Steady cursor
-;; [bill] Smooth scrolling is handled by ultra-scroll (extras/base.el); the
-;; built-in pixel-scroll-precision-mode conflicts with it over wheel events.
-;(pixel-scroll-precision-mode)                         ; Smooth scrolling
-
-;; [bill] Open URLs and previews in a real browser.
-;;
-;; The default (`browse-url-default-browser') shells out to xdg-open, which
-;; dispatches on the *sniffed* MIME type. Pandoc emits XHTML, and on this box
-;; `application/xhtml+xml' is registered to calibre-ebook-edit.desktop -- so
-;; `C-c C-c p' in Markdown opened Calibre instead of a browser. Naming the
-;; program explicitly sidesteps the whole xdg lookup.
-;;
-;; If none of these exist (e.g. macOS), fall through to the default, which
-;; uses `open' and behaves correctly there.
-(when-let* ((browser (seq-find #'executable-find
-                               '("google-chrome-stable" "google-chrome"
-                                 "chromium" "firefox"))))
-  (setopt browse-url-browser-function #'browse-url-generic
-          browse-url-generic-program browser))
+(pixel-scroll-precision-mode)                         ; Smooth scrolling
+;; If you use a mouse and scrolling seems a little jittery, you might
+;; want to set this to `nil':
+(setopt pixel-scroll-precision-interpolate-mice nil)
 
 ;; Use common keystrokes by default
 ;; (cua-mode)
 
-;; For terminal users, make the mouse more useful
-
-(xterm-mouse-mode 1)
+;; Makes it easier to repeat commands; `C-x o C-x o' becomes `C-x o o'
+;; See https://karthinks.com/software/it-bears-repeating/
+(repeat-mode)
 
 ;; Display line numbers in programming mode
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
@@ -261,9 +266,18 @@ If the new path's directories does not exist, create them."
 ;; Nice line wrapping when working with text
 (add-hook 'text-mode-hook 'visual-line-mode)
 
-;; Modes to highlight the current line with
-(let ((hl-line-hooks '(text-mode-hook prog-mode-hook)))
-  (mapc (lambda (hook) (add-hook hook 'hl-line-mode)) hl-line-hooks))
+(setopt global-hl-line-sticky-flag 'window) ; Every window gets own hl-line instance
+(global-hl-line-mode)
+
+;; Use this to enable the line highlight in only certain modes:
+;(let ((hl-line-hooks '(text-mode-hook prog-mode-hook)))
+;  (mapc (lambda (hook) (add-hook hook 'hl-line-mode)) hl-line-hooks))
+
+;; Show matching delimiters
+(setopt show-paren-delay 0)
+(setopt show-paren-mode t)
+(setopt show-paren-style 'expression)   ; default is 'parenthesis and just does delimiters
+(setopt show-paren-context-when-offscreen 'overlay)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -278,8 +292,31 @@ If the new path's directories does not exist, create them."
 (add-to-list 'tab-bar-format 'tab-bar-format-align-right 'append)
 (add-to-list 'tab-bar-format 'tab-bar-format-global 'append)
 (setopt display-time-format "%a %F %T")
-;; (setopt display-time-interval 1)
+(setopt display-time-interval 1)
 (display-time-mode)
+
+;; A transient menu to make working with the tab-bar easier
+;; The `transient' library is built-in and makes defining little menus
+;; easy to work with. Activate this menu with `C-c C-t'.
+(use-package transient
+  :ensure nil                           ; built-in
+  :config
+  ;; You can define as many of these as you like
+  (transient-define-prefix tab-bar-transient ()
+    "Tab-bar menu"
+    [["Creation"
+      ("t" "new tab" tab-bar-new-tab)
+      ("n" "next command in new tab" other-tab-prefix)]
+     ["Movement"
+      ("j" "jump to tab" tab-switch)
+      ("h" "move left" tab-bar-move-tab-backward :transient t)
+      ("l" "move right" tab-bar-move-tab :transient t)]]
+    [["Management"
+      ("r" "rename tab" tab-rename)]]
+    [[""
+      ("RET" "Done" transient-quit-one)]])
+  :bind (:map global-map
+              ("C-c C-t" . tab-bar-transient)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -288,59 +325,25 @@ If the new path's directories does not exist, create them."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; (use-package emacs
-  ;; :config
-  ;; (load-theme 'modus-vivendi))          ; for light theme, use modus-operandi
+;;  :config
+;;  (load-theme 'modus-vivendi))          ; for light theme, use modus-operandi
 
-;; (use-package gruvbox-theme
-;;   :ensure t
-;;   :config
-;;   (mapc #'disable-theme custom-enabled-themes)
-;;   (load-theme 'gruvbox-light-medium t))
-
-(use-package solarized-theme
+(use-package gruvbox-theme
   :ensure t
   :config
-  (mapc #'disable-theme custom-enabled-themes)
-  (load-theme 'solarized-gruvbox-light t))
+  (load-theme 'gruvbox-light-medium t))
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Fonts
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun bill/first-available-font (&rest families)
-  "Returns first font from a FAMILIES, nil if none"
-  (seq-find (lambda (f) (member f (font-family-list))) families))
-
-(defun bill/setup-fonts ()
-  (let ((latin (bill/first-available-font
-		"Ioskeley Mono Term SmCn" "Ioskeley Mono Term" "Iosevka" "Menlo" "Monospace"))
-	(cjk (bill/first-available-font
-	      "LXGW WenKai Mono Medium" "LXGW WenKai Mono" "Sarasa Mono SC")))
-    (when latin
-      (set-face-attribute 'default nil :family latin :weight 'medium :height 130))
-    (when cjk
-      (dolist (charset '(han cjk-misc))
-	(set-fontset-font t charset cjk nil 'prepend)))))
-
-;; [bill] In daemon mode there is no graphical display at startup, so a plain
-;; (display-graphic-p) check would never fire. Defer to the first graphical
-;; client frame instead; the hook removes itself once it has done its job.
-(defun bill/setup-fonts-once (frame)
-  (with-selected-frame frame
-    (when (display-graphic-p frame)
-      (bill/setup-fonts)
-      (remove-hook 'after-make-frame-functions #'bill/setup-fonts-once))))
-
-(if (daemonp)
-    (add-hook 'after-make-frame-functions #'bill/setup-fonts-once)
-  (when (display-graphic-p)
-    (bill/setup-fonts)))
-
-(setq-default line-spacing 0.1)
-
+;; Fonts
+(when (display-graphic-p)
+  ;; English font; height is measured in tenths of a point.
+  (set-face-attribute 'default nil
+		      :family "Ioskeley Mono"
+		      :height 160)
+  ;; Chinese font.
+  (dolist (charset '(han cjk-misc))
+    (set-fontset-font t charset
+		      (font-spec :family "LXGW WenKai Mono")
+		      nil 'prepend)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -358,12 +361,20 @@ If the new path's directories does not exist, create them."
 ;; Packages for software development
 (load-file (expand-file-name "extras/dev.el" user-emacs-directory))
 
+;; Must load before evil to set evil-want-keybinding.
+(load-file (expand-file-name "personal/evil.el" user-emacs-directory))
+
 ;; Vim-bindings in Emacs (evil-mode configuration)
 (load-file (expand-file-name "extras/vim-like.el" user-emacs-directory))
 
-;; Org-mode: plain markup/links/export only -- notes stay in Obsidian, so no
-;; agenda, capture or roam here. See extras/org-intro.txt for an overview.
-(load-file (expand-file-name "extras/org.el" user-emacs-directory))
+;; My custom leader key config
+(load-file (expand-file-name "personal/keys.el" user-emacs-directory))
+
+
+;; Org-mode configuration
+;; WARNING: need to customize things inside the elisp file before use! See
+;; the file extras/org-intro.txt for help.
+;(load-file (expand-file-name "extras/org.el" user-emacs-directory))
 
 ;; Email configuration in Emacs
 ;; WARNING: needs the `mu' program installed; see the elisp file for more
@@ -373,33 +384,27 @@ If the new path's directories does not exist, create them."
 ;; Tools for academic researchers
 ;(load-file (expand-file-name "extras/researcher.el" user-emacs-directory))
 
-;; Writing aids: jinx (spell-check, opt-in per buffer) and olivetti (centered prose)
-(load-file (expand-file-name "extras/writer.el" user-emacs-directory))
-
-(load-file (expand-file-name "lisp/programming.el" user-emacs-directory))
-
-;; Personal keybindings. Must come after extras/vim-like.el -- it references
-;; `evil-window-map' at definition time.
-(load-file (expand-file-name "lisp/keys.el" user-emacs-directory))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;   Built-in customization framework
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setq custom-file (locate-user-emacs-file "custom.el"))
-(load custom-file t t)
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages '(citar-typst which-key)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Machine-local settings
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; local.el is not tracked by git; use it for per-machine overrides.
-(let ((local-file (expand-file-name "local.el" user-emacs-directory)))
-  (when (file-exists-p local-file)
-    (load-file local-file)))
+ ;; This sets the default font for Emacs. Height is in 1/10 pt; configure as desired.
+ ;; The example font listed here, Iosevka Output, is available here: https://codeberg.org/ashton314/iosevka-output
+ ;; '(default ((t (:weight normal :height 130 :width expanded :family "Iosevka Output"))))
+ )
 
 (setq gc-cons-threshold (or bedrock--initial-gc-threshold 800000))

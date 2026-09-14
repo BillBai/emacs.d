@@ -1,4 +1,4 @@
-;;; -*- lexical-binding: nil; -*-
+;;; -*- lexical-binding: t -*-
 ;;;  ________                                                _______                 __                            __
 ;;; /        |                                              /       \               /  |                          /  |
 ;;; $$$$$$$$/ _____  ____   ______   _______  _______       $$$$$$$  | ______   ____$$ | ______   ______   _______$$ |   __
@@ -24,39 +24,48 @@
 (setq native-comp-async-report-warnings-errors 'silent)
 
 ;; Silence stupid startup message
-(setq inhibit-startup-echo-area-message (user-login-name))
+(advice-add #'display-startup-echo-area-message :override #'ignore)
 
-;; Default frame configuration: full screen, good-looking title bar on macOS
+;; Tell use-package to install if missing by default
+;; Use `:ensure nil' in packages you *don't* want to install
+(setq use-package-always-ensure t)
+
+;; Setting *-resize-pixelwise to `t' lets frames/windows resize
+;; smoothly at sub-character increments
 (setq frame-resize-pixelwise t)
 ; (setq window-resize-pixelwise t)
 
-(when (boundp 'tool-bar-mode) ; When in a GUI, disable tool bar;
-  (tool-bar-mode -1))        ; all these tools are in the menu-bar anyway
+(when (fboundp 'tool-bar-mode) ; When in a GUI, disable tool bar;
+  (tool-bar-mode -1))          ; all these tools are in the menu-bar anyway
 
-;; [bill] Scroll bars are noise; the fringe indicators already show position.
-(when (boundp 'scroll-bar-mode)
-  (scroll-bar-mode -1))
-(when (boundp 'horizontal-scroll-bar-mode)
-  (horizontal-scroll-bar-mode -1))
-
-;; (setq default-frame-alist '((fullscreen . maximized)
-
-;;                             ;; You can turn off scroll bars by uncommenting these lines:
-;;                             ;; (vertical-scroll-bars . nil)
-;;                             ;; (horizontal-scroll-bars . nil)
-
-;;                             ;; Setting the face in here prevents flashes of
-;;                             ;; color as the theme gets activated
-;;                             (background-color . "#000000")
-;;                             (foreground-color . "#ffffff")
-;;                             (ns-appearance . dark)
-;;                             (ns-transparent-titlebar . t)))
-
-;; [bill] No (fullscreen . maximized) here: desktop-restore-frames (init.el)
-;; brings back the size/position/monitor from the last quit, and a hardcoded
-;; maximized would fight that.
-(setq default-frame-alist '((internal-border-width . 12)
-                            (background-color . "#fbf1c7")
-                            (foreground-color . "#3c3836")
+;; These settings apply to *all* frames.
+(setq default-frame-alist '(
+			    (width . 140)
+			    (height . 48)
+                            ;; You can turn off scroll bars by uncommenting these lines:
+                            ;; (vertical-scroll-bars . nil)
+                            ;; (horizontal-scroll-bars . nil)
                             (ns-appearance . light)
-                            (ns-transparent-titlebar . t)))
+                            (ns-transparent-titlebar . t)
+
+                            ;; Use this to turn off the OS window decoration
+                            ;; (undecorated-round . t)
+                            ;; (internal-border-width . 3)
+                            ))
+
+;; These settings apply to the first frame created. The
+;; (back|fore)ground-color settings need to live here so that a
+;; theme's background color applies correctly to subsequent frames.
+(setq initial-frame-alist '(
+			    (width . 140)
+			    (height . 48)
+			    (background-color . "#fbf1c7")
+			    (foreground-color . "#3c3836")
+			    (ns-appearance . light)
+			    (ns-transparent-titlebar . t)
+			    ;; (fullscreen . maximized)
+                            ;; Setting the face in here prevents flashes of
+                            ;; color as the theme gets activated
+                            ;; (background-color . "#000000")
+                            ;; (foreground-color . "#ffffff")
+			    ))

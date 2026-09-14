@@ -1,3 +1,5 @@
+;;; -*- lexical-binding: t -*-
+;;;
 ;;; Emacs Bedrock
 ;;;
 ;;; Extra config: Email

@@ -1,7 +1,10 @@
 Many people use Emacs just so they can use org-mode. If you're one of them,
 welcome!
 
-This is a short introduction to get an overview of what org-mode does.
+This is a short introduction to get an overview of what org-mode does. Yes, this
+just a plain-text file. Yes it's using Markdown syntax. That's deliberate: if
+you're not used to navigating and using org-mode (it's not hard—just unfamiliar)
+I didn't want a "getting started guide" to be hard for you to read. :)
 
 Org-mode is hard to understand because there are broadly three different things
 that org-mode does. They're related but distinct enough to make things
@@ -10,6 +13,7 @@ confusing. We'll focus on three different use cases for org-mode:
  - org-mode as markup
  - org-mode as a task tracker
  - org-mode as a computational notebook
+
 
 Org-mode as markup
 ==================
@@ -27,6 +31,7 @@ asterisks, underscores, and slashes respectively.
 Once you've authored a file with org-mode, you can use Emacs to export the
 org-mode into another format, like HTML, Markdown, ODT, or PDF with LaTeX. Run
 `org-export` to bring up the export menu.
+
 
 Org-mode as a task tracker
 ==========================
@@ -78,6 +83,7 @@ you just added in it.
 There are too many ways you can configure this for me to describe here. Just
 start small: have one or two files in the `org-agenda-files` list to act as
 where you put your TODO items. Use the agenda to view and modify those TODOs.
+
 
 Org-mode as a computational notebook
 ====================================

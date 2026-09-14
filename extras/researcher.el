@@ -1,12 +1,9 @@
+;;; -*- lexical-binding: t -*-
+;;;
 ;;; Emacs Bedrock
 ;;;
 ;;; Extra config: Researcher
 
-;;; NOTE: the Citar package lives on the MELPA repository; you will
-;;; need to update the `package-archives' variable in init.el before
-;;; before loading this; see the comment in init.el under "Package
-;;; initialization".
-;;;
 ;;; Usage: Append or require this file from init.el for research
 ;;; helps. If you write papers in LaTeX and need to manage your
 ;;; citations or keep track of notes, this set of packages is for you.
@@ -45,7 +42,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-package citar
-  :ensure t
   :bind (("C-c b" . citar-insert-citation)
          :map minibuffer-local-map
          ("M-b" . citar-insert-preset))
